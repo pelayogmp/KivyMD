@@ -32,3 +32,22 @@ use_parantheses = true
 force_grid_wrap = 0
 ensure_newline_before_comments = true
 known_third_party = ["setuptools", "kivy", "requests", "PIL", "android", "jnius", "watchdog", "sphinx", "docutils", "autoapi", "unidecode"]
+
+[tool.poetry]
+name = "pgm-kivymd"
+version = "0.104.1"
+description = "Set of widgets for Kivy inspired by Google's Material"
+authors = ["KivyMD Development Team"]
+
+[tool.poetry.dependencies]
+python = ">= 3.7, < 3.8"
+kivy = "^1.11.1"
+kivy_examples = "^1.11.1"
+"kivy-garden.graph" = "^0.4.0"
+kivymd = {path = "../wheels/kivymd-0.104.1-py3-none-any.whl"}
+plyer = "^1.4.3"
+
+[tool.poetry.dev-dependencies]
+wheel = "^0.34.2"
+buildozer = {path = "../wheels/buildozer-1.2.0.dev0-py3-none-any.whl"}
+cython = "^0.29.21"
