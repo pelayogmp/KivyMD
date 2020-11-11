@@ -4,7 +4,7 @@ Components/Progress Bar
 
 .. seealso::
 
-    `Material Design spec, Progress indicators https://material.io/components/progress-indicators`_
+    `Material Design spec, Progress indicators <https://material.io/components/progress-indicators>`_
 
 .. rubric:: Progress indicators express an unspecified wait time or display
     the length of a process.

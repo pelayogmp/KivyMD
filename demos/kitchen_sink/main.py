@@ -7,16 +7,18 @@ from kivy.core.window import Window
 from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.loader import Loader
+from libs.baseclass.dialog_change_theme import (
+    KitchenSinkDialogChangeTheme,
+    KitchenSinkUsageCode,
+)
+from libs.baseclass.expansionpanel import KitchenSinkExpansionPanelContent
+from libs.baseclass.list_items import (  # NOQA: F401
+    KitchenSinkOneLineLeftIconItem,
+)
 
 from kivymd import images_path
 from kivymd.app import MDApp
 from kivymd.uix.expansionpanel import MDExpansionPanel, MDExpansionPanelOneLine
-from libs.baseclass.dialog_change_theme import KitchenSinkDialogChangeTheme
-from libs.baseclass.expansionpanel import KitchenSinkExpansionPanelContent
-
-from libs.baseclass.list_items import (  # NOQA: F401
-    KitchenSinkOneLineLeftIconItem,
-)
 
 os.environ["KIVY_PROFILE_LANG"] = "1"
 
@@ -98,6 +100,11 @@ class KitchenSinkApp(MDApp):
             if "toolbar" in screen_object.ids:
                 screen_object.ids.toolbar.title = name_screen
             manager.add_widget(screen_object)
+        code_file = f"{os.environ['KITCHEN_SINK_ROOT']}/assets/md/{self.data_screens[name_screen]['source_code']}"
+        with open(code_file, "r") as f:
+            self.sample_code = f.read()
+            self.screen_name = name_screen
+            self.website = self.data_screens[name_screen]["more_info"]
         manager.current = self.data_screens[name_screen]["name_screen"]
 
     def back_to_home_screen(self):
@@ -113,6 +120,15 @@ class KitchenSinkApp(MDApp):
         from kivymd.toast import toast
 
         toast(args[0])
+
+    def show_code(self):
+        if self.theme_cls.device_orientation == "landscape":
+            code = KitchenSinkUsageCode(
+                code=self.sample_code,
+                title=self.screen_name,
+                website=self.website,
+            )
+            code.open()
 
     def show_demo_shrine(self, instance):
         """
@@ -146,11 +162,12 @@ class KitchenSinkApp(MDApp):
             anim.bind(on_complete=lambda *x: add_screen_shrine(MDShrine))
             anim.start(box)
 
-        from kivy.uix.boxlayout import BoxLayout
-        from kivy.metrics import dp
-        from kivy.uix.image import Image
         from kivy.clock import Clock
+        from kivy.metrics import dp
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.image import Image
 
+        self.theme_cls.theme_style = "Light"
         box = BoxLayout(
             orientation="vertical",
             size_hint=(0.4, 0.6),

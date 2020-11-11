@@ -67,7 +67,7 @@ Persistent helper text mode
     :align: center
 
 Helper text mode `'on_error'`
-----------------------------
+-----------------------------
 
 To display an error in a text field when using the
 ``helper_text_mode: "on_error"`` parameter, set the `"error"` text field
@@ -114,7 +114,7 @@ parameter to `True`:
     :align: center
 
 Helper text mode `'on_error'` (with required)
---------------------------------------------
+---------------------------------------------
 
 .. code-block:: kv
 
@@ -405,6 +405,7 @@ With right icon
 
 __all__ = ("MDTextField", "MDTextFieldRect", "MDTextFieldRound")
 
+import re
 import sys
 
 from kivy.animation import Animation
@@ -646,6 +647,15 @@ Builder.load_string(
 
 
 class MDTextFieldRect(ThemableBehavior, TextInput):
+
+    line_anim = BooleanProperty(True)
+    """
+    If True, then text field shows animated line when on focus.
+
+    :attr:`line_anim` is an :class:`~kivy.properties.BooleanProperty`
+    and defaults to `True`.
+    """
+
     _primary_color = ListProperty((0, 0, 0, 0))
 
     def __init__(self, **kwargs):
@@ -663,8 +673,12 @@ class MDTextFieldRect(ThemableBehavior, TextInput):
             d_line = 0.05
             d_color = 0.05
 
-        Animation(points=points, d=d_line, t="out_cubic").start(instance_line)
-        Animation(a=alpha, d=d_color).start(instance_color)
+        Animation(
+            points=points, d=(d_line if self.line_anim else 0), t="out_cubic"
+        ).start(instance_line)
+        Animation(a=alpha, d=(d_color if self.line_anim else 0)).start(
+            instance_color
+        )
 
     def _update_primary_color(self, *args):
         self._primary_color = self.theme_cls.primary_color
@@ -750,6 +764,14 @@ class MDTextField(ThemableBehavior, TextInput):
 
     :attr:`line_color_focus` is an :class:`~kivy.properties.ListProperty`
     and defaults to `[]`.
+    """
+
+    line_anim = BooleanProperty(True)
+    """
+    If True, then text field shows animated line when on focus.
+
+    :attr:`line_anim` is an :class:`~kivy.properties.BooleanProperty`
+    and defaults to `True`.
     """
 
     error_color = ListProperty()
@@ -847,6 +869,7 @@ class MDTextField(ThemableBehavior, TextInput):
             accent_color=self._update_accent_color,
         )
         self.has_had_text = False
+        self._better_texture_size = None
 
     def set_objects_labels(self):
         """Creates labels objects for the parameters
@@ -921,9 +944,11 @@ class MDTextField(ThemableBehavior, TextInput):
             )
             if not self.text:
                 self._anim_lbl_font_size(dp(14), sp(12))
-            Animation(_line_width=self.width, duration=0.2, t="out_quad").start(
-                self
-            )
+            Animation(
+                _line_width=self.width,
+                duration=(0.2 if self.line_anim else 0),
+                t="out_quad",
+            ).start(self)
             if self._get_has_error():
                 self._anim_current_error_color(self.error_color)
                 if self.helper_text_mode == "on_error" and (
@@ -988,9 +1013,25 @@ class MDTextField(ThemableBehavior, TextInput):
                     self._anim_current_error_color(disabled_hint_text_color)
                 elif self.helper_text_mode == "on_focus":
                     self._anim_current_error_color((0, 0, 0, 0))
-                Animation(_line_width=0, duration=0.2, t="out_quad").start(self)
+                Animation(
+                    _line_width=0,
+                    duration=(0.2 if self.line_anim else 0),
+                    t="out_quad",
+                ).start(self)
+
+    def on_disabled(self, *args):
+        if self.disabled:
+            self._update_colors(self.theme_cls.disabled_hint_text_color)
+        elif not self.disabled:
+            if self.color_mode == "primary":
+                self._update_primary_color()
+            elif self.color_mode == "accent":
+                self._update_accent_color()
+            elif self.color_mode == "custom":
+                self._update_colors(self.line_color_focus)
 
     def on_text(self, instance, text):
+        self.text = re.sub("\n", " ", text) if not self.multiline else text
         if len(text) > 0:
             self.has_had_text = True
         if self.max_text_length is not None:
@@ -1125,9 +1166,10 @@ class MDTextField(ThemableBehavior, TextInput):
 
     def _get_line_blank_space_right_point(self):
         # https://github.com/HeaTTheatR/KivyMD-data/raw/master/gallery/kivymddoc/_line_blank_space_right_point.png
+        if not self._better_texture_size:
+            self._better_texture_size = self._hint_lbl.texture_size[0]
         return (
-            self._hint_lbl.texture_size[0]
-            - self._hint_lbl.texture_size[0] / 100 * dp(18)
+            self._better_texture_size - self._better_texture_size / 100 * dp(18)
             if DEVICE_TYPE == "desktop"
             else dp(10)
         )
