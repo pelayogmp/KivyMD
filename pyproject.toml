@@ -41,11 +41,12 @@ authors = ["KivyMD Development Team"]
 
 [tool.poetry.dependencies]
 python = ">= 3.7, < 3.8"
-kivy = "^1.11.1"
-kivy_examples = "^1.11.1"
-"kivy-garden.graph" = "^0.4.0"
-kivymd = {path = "../wheels/kivymd-0.104.1-py3-none-any.whl"}
-plyer = "^1.4.3"
+kivy = "2.0.0rc3"
+kivy_examples = "2.0.0rc3"
+"kivy-garden.graph" = "*"
+kivymd = {path = "../wheels/kivymd-0.104.2.dev0-py3-none-any.whl"}
+plyer = "*"
+ffpyplayer = "^4.3.1"
 
 [tool.poetry.dev-dependencies]
 wheel = "^0.34.2"
