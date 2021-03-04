@@ -19,6 +19,9 @@ Usage
 .. image:: https://github.com/HeaTTheatR/KivyMD-data/raw/master/gallery/kivymddoc/file-manager.png
     :align: center
 
+.. warning:: Be careful! To use the `/` path on Android devices, you need
+    special permissions. Therefore, you are likely to get an error.
+
 Or with ``preview`` mode:
 
 .. code-block:: python
@@ -123,6 +126,7 @@ from kivy.lang import Builder
 from kivy.metrics import dp
 from kivy.properties import (
     BooleanProperty,
+    ColorProperty,
     ListProperty,
     NumericProperty,
     ObjectProperty,
@@ -239,10 +243,11 @@ ACTIVITY_MANAGER = """
             key_size: "height"
             bar_width: dp(4)
             bar_color: root.theme_cls.primary_color
-            #on_scroll_stop: root._update_list_images()
+            # on_scroll_stop: root._update_list_images()
 
             RecycleGridLayout:
-                padding: dp(10)
+                padding: "10dp"
+                spacing: "2dp"
                 cols: 3 if root.preview else 1
                 default_size: None, dp(48)
                 default_size_hint: 1, None
@@ -271,7 +276,7 @@ class IconButton(CircularRippleBehavior, ButtonBehavior, FitImage):
 
 class FloatButton(AnchorLayout):
     callback = ObjectProperty()
-    md_bg_color = ListProperty([1, 1, 1, 1])
+    md_bg_color = ColorProperty([1, 1, 1, 1])
     icon = StringProperty()
 
 
@@ -401,12 +406,12 @@ class MDFileManager(ThemableBehavior, MDFloatLayout):
     and defaults to `any`.
     """
 
-    selection = ListProperty([])
+    selection = ListProperty()
     """
     Contains the list of files that are currently selected.
 
     :attr:`selection` is a read-only :class:`~kivy.properties.ListProperty` and
-    defaults to [].
+    defaults to `[]`.
     """
 
     _window_manager = None

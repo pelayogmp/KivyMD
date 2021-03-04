@@ -221,8 +221,8 @@ Builder.load_string(
     bar_width: 0
 
     MDBoxLayout:
-        adaptive_width: True
         id: anchor_scroll
+        adaptive_width: True
         padding: [root.items_spacing, 0 ]
 
 
@@ -452,6 +452,8 @@ class MDSwiper(ScrollView, EventDispatcher):
 
     def _reset_size(self, *args):
         children = list(reversed(self.ids.anchor_scroll.children))
+        if not children:
+            return
         child = children[self._selected]
         total_width = self.ids.anchor_scroll.width - Window.width
         view_x = child.x - self.items_spacing * self.width_mult

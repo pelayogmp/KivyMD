@@ -73,13 +73,13 @@ from kivy.lang import Builder
 from kivy.metrics import dp
 from kivy.properties import (
     BoundedNumericProperty,
+    ColorProperty,
     ListProperty,
     NumericProperty,
     OptionProperty,
     StringProperty,
 )
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.widget import Widget
 
 from kivymd.font_definitions import theme_font_styles
 from kivymd.material_resources import DEVICE_TYPE
@@ -106,7 +106,7 @@ Builder.load_string(
         RoundedRectangle:
             pos: self.pos
             size: self.size
-            radius: [5]
+            radius: root.tooltip_radius
         Scale:
             origin: self.center
             x: root._scale_x
@@ -133,21 +133,21 @@ Builder.load_string(
 )
 
 
-class MDTooltip(ThemableBehavior, HoverBehavior, TouchBehavior, Widget):
-    tooltip_bg_color = ListProperty()
+class MDTooltip(ThemableBehavior, HoverBehavior, TouchBehavior):
+    tooltip_bg_color = ColorProperty(None)
     """
     Tooltip background color in ``rgba`` format.
 
-    :attr:`tooltip_bg_color` is an :class:`~kivy.properties.ListProperty`
-    and defaults to `[]`.
+    :attr:`tooltip_bg_color` is an :class:`~kivy.properties.ColorProperty`
+    and defaults to `None`.
     """
 
-    tooltip_text_color = ListProperty()
+    tooltip_text_color = ColorProperty(None)
     """
     Tooltip text color in ``rgba`` format.
 
-    :attr:`tooltip_text_color` is an :class:`~kivy.properties.ListProperty`
-    and defaults to `[]`.
+    :attr:`tooltip_text_color` is an :class:`~kivy.properties.ColorProperty`
+    and defaults to `None`.
     """
 
     tooltip_text = StringProperty()
@@ -166,6 +166,18 @@ class MDTooltip(ThemableBehavior, HoverBehavior, TouchBehavior, Widget):
 
     :attr:`tooltip_font_style` is an :class:`~kivy.properties.OptionProperty`
     and defaults to `'Caption'`.
+    """
+
+    tooltip_radius = ListProperty(
+        [
+            dp(7),
+        ]
+    )
+    """
+    Corner radius values.
+
+    :attr:`radius` is an :class:`~kivy.properties.ListProperty`
+    and defaults to `[dp(7),]`.
     """
 
     tooltip_display_delay = BoundedNumericProperty(0, min=0, max=4)
@@ -270,6 +282,7 @@ class MDTooltip(ThemableBehavior, HoverBehavior, TouchBehavior, Widget):
                 tooltip_text_color=self.tooltip_text_color,
                 tooltip_text=self.tooltip_text,
                 tooltip_font_style=self.tooltip_font_style,
+                tooltip_radius=self.tooltip_radius,
             )
             Clock.schedule_once(self.display_tooltip, -1)
 
@@ -286,12 +299,12 @@ class MDTooltip(ThemableBehavior, HoverBehavior, TouchBehavior, Widget):
 
 
 class MDTooltipViewClass(ThemableBehavior, BoxLayout):
-    tooltip_bg_color = ListProperty()
+    tooltip_bg_color = ColorProperty(None)
     """
     See :attr:`~MDTooltip.tooltip_bg_color`.
     """
 
-    tooltip_text_color = ListProperty()
+    tooltip_text_color = ColorProperty(None)
     """
     See :attr:`~MDTooltip.tooltip_text_color`.
     """
@@ -304,6 +317,11 @@ class MDTooltipViewClass(ThemableBehavior, BoxLayout):
     tooltip_font_style = OptionProperty("Caption", options=theme_font_styles)
     """
     See :attr:`~MDTooltip.tooltip_font_style`.
+    """
+
+    tooltip_radius = ListProperty()
+    """
+    See :attr:`~MDTooltip.tooltip_radius`.
     """
 
     _scale_x = NumericProperty(0)
