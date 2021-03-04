@@ -1,27 +1,33 @@
 import ast
 import os
 import sys
+from pathlib import Path
 
 from kivy.core.window import Window
 from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.loader import Loader
+from libs.baseclass.dialog_change_theme import (
+    KitchenSinkDialogChangeTheme,
+    KitchenSinkUsageCode,
+)
+from libs.baseclass.expansionpanel import KitchenSinkExpansionPanelContent
+from libs.baseclass.list_items import (  # NOQA: F401
+    KitchenSinkOneLineLeftIconItem,
+)
 
 from kivymd import images_path
 from kivymd.app import MDApp
 from kivymd.uix.expansionpanel import MDExpansionPanel, MDExpansionPanelOneLine
-from libs.baseclass.dialog_change_theme import KitchenSinkDialogChangeTheme
-from libs.baseclass.expansionpanel import KitchenSinkExpansionPanelContent
 
-from libs.baseclass.list_items import (  # NOQA: F401
-    KitchenSinkOneLineLeftIconItem,
-)
+os.environ["KIVY_PROFILE_LANG"] = "1"
 
 if getattr(sys, "frozen", False):  # bundle mode with PyInstaller
     os.environ["KITCHEN_SINK_ROOT"] = sys._MEIPASS
 else:
     sys.path.append(os.path.abspath(__file__).split("demos")[0])
-    os.environ["KITCHEN_SINK_ROOT"] = os.path.dirname(os.path.abspath(__file__))
+    os.environ["KITCHEN_SINK_ROOT"] = str(Path(__file__).parent)
+    # os.environ["KITCHEN_SINK_ROOT"] = os.path.dirname(os.path.abspath(__file__))
 os.environ["KITCHEN_SINK_ASSETS"] = os.path.join(
     os.environ["KITCHEN_SINK_ROOT"], f"assets{os.sep}"
 )
@@ -38,19 +44,11 @@ class KitchenSinkApp(MDApp):
         Loader.loading_image = f"{images_path}transparent.png"
 
     def build(self):
-        Builder.load_string(
-            open(
-                f"{os.environ['KITCHEN_SINK_ROOT']}/libs/kv/list_items.kv",
-                "rt",
-                encoding="utf-8",
-            ).read()
+        Builder.load_file(
+            f"{os.environ['KITCHEN_SINK_ROOT']}/libs/kv/list_items.kv"
         )
-        return Builder.load_string(
-            open(
-                f"{os.environ['KITCHEN_SINK_ROOT']}/libs/kv/start_screen.kv",
-                "rt",
-                encoding="utf-8",
-            ).read()
+        return Builder.load_file(
+            f"{os.environ['KITCHEN_SINK_ROOT']}/libs/kv/start_screen.kv"
         )
 
     def show_dialog_change_theme(self):
@@ -61,27 +59,19 @@ class KitchenSinkApp(MDApp):
 
     def on_start(self):
         """Creates a list of items with examples on start screen."""
-
-        Builder.load_string(
-            open(
-                f"{os.environ['KITCHEN_SINK_ROOT']}/libs/kv/dialog_change_theme.kv",
-                "rt",
-                encoding="utf-8",
-            ).read()
+        Builder.load_file(
+            f"{os.environ['KITCHEN_SINK_ROOT']}/libs/kv/dialog_change_theme.kv",
         )
-        Builder.load_string(
-            open(
-                f"{os.environ['KITCHEN_SINK_ROOT']}/libs/kv/base_content.kv",
-                "rt",
-                encoding="utf-8",
-            ).read()
+        Builder.load_file(
+            f"{os.environ['KITCHEN_SINK_ROOT']}/libs/kv/base_content.kv",
         )
 
-        with open(f"{os.getcwd()}/screens_data.json") as read_file:
+        with open(
+            f"{os.environ['KITCHEN_SINK_ROOT']}/screens_data.json"
+        ) as read_file:
             self.data_screens = ast.literal_eval(read_file.read())
             data_screens = list(self.data_screens.keys())
             data_screens.sort()
-
         for name_item_example in data_screens:
             self.root.ids.backdrop_front_layer.data.append(
                 {
@@ -100,12 +90,8 @@ class KitchenSinkApp(MDApp):
             self.data_screens[name_screen]["name_screen"]
         ):
             name_kv_file = self.data_screens[name_screen]["kv_string"]
-            Builder.load_string(
-                open(
-                    f"{os.environ['KITCHEN_SINK_ROOT']}/libs/kv/{name_kv_file}.kv",
-                    "rt",
-                    encoding="utf-8",
-                ).read()
+            Builder.load_file(
+                f"{os.environ['KITCHEN_SINK_ROOT']}/libs/kv/{name_kv_file}.kv",
             )
             if "Import" in self.data_screens[name_screen]:
                 exec(self.data_screens[name_screen]["Import"])
@@ -114,6 +100,11 @@ class KitchenSinkApp(MDApp):
             if "toolbar" in screen_object.ids:
                 screen_object.ids.toolbar.title = name_screen
             manager.add_widget(screen_object)
+        code_file = f"{os.environ['KITCHEN_SINK_ROOT']}/assets/md/{self.data_screens[name_screen]['source_code']}"
+        with open(code_file, "r") as f:
+            self.sample_code = f.read()
+            self.screen_name = name_screen
+            self.website = self.data_screens[name_screen]["more_info"]
         manager.current = self.data_screens[name_screen]["name_screen"]
 
     def back_to_home_screen(self):
@@ -129,6 +120,15 @@ class KitchenSinkApp(MDApp):
         from kivymd.toast import toast
 
         toast(args[0])
+
+    def show_code(self):
+        if self.theme_cls.device_orientation == "landscape":
+            code = KitchenSinkUsageCode(
+                code=self.sample_code,
+                title=self.screen_name,
+                website=self.website,
+            )
+            code.open()
 
     def show_demo_shrine(self, instance):
         """
@@ -162,11 +162,12 @@ class KitchenSinkApp(MDApp):
             anim.bind(on_complete=lambda *x: add_screen_shrine(MDShrine))
             anim.start(box)
 
-        from kivy.uix.boxlayout import BoxLayout
-        from kivy.metrics import dp
-        from kivy.uix.image import Image
         from kivy.clock import Clock
+        from kivy.metrics import dp
+        from kivy.uix.boxlayout import BoxLayout
+        from kivy.uix.image import Image
 
+        self.theme_cls.theme_style = "Light"
         box = BoxLayout(
             orientation="vertical",
             size_hint=(0.4, 0.6),

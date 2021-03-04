@@ -116,6 +116,7 @@ Example
 
 __all__ = ("MDFileManager",)
 
+import locale
 import os
 
 from kivy.lang import Builder
@@ -150,12 +151,14 @@ ACTIVITY_MANAGER = """
     background_normal: ""
     background_down: ""
     dir_or_file_name: ""
+    _selected: False
     events_callback: lambda x: None
     orientation: "vertical"
 
     ModifiedOneLineIconListItem:
         text: root.dir_or_file_name
-        on_release: root.events_callback(root.path)
+        bg_color: self.theme_cls.bg_darkest if root._selected else self.theme_cls.bg_normal
+        on_release: root.events_callback(root.path, root)
 
         IconLeftWidget:
             icon: root.icon
@@ -180,6 +183,7 @@ ACTIVITY_MANAGER = """
     realpath: ""
     type: "folder"
     events_callback: lambda x: None
+    _selected: False
     orientation: "vertical"
     size_hint_y: None
     hright: root.height
@@ -188,10 +192,11 @@ ACTIVITY_MANAGER = """
     IconButton:
         mipmap: True
         source: root.path
+        bg_color: app.theme_cls.bg_darkest if root._selected else app.theme_cls.bg_normal
         on_release:
             root.events_callback(\
             os.path.join(root.path if root.type != "folder" else root.realpath, \
-            root.name))
+            root.name), root)
 
     LabelContent:
         text: root.name
@@ -243,7 +248,6 @@ ACTIVITY_MANAGER = """
                 default_size_hint: 1, None
                 size_hint_y: None
                 height: self.minimum_height
-                orientation: "vertical"
 
 
 <ModifiedOneLineIconListItem>
@@ -258,8 +262,7 @@ ACTIVITY_MANAGER = """
 
 
 class BodyManagerWithPreview(MDBoxLayout):
-    """Base class for folder icons and thumbnails images in ``preview`` mode.
-    """
+    """Base class for folder icons and thumbnails images in ``preview`` mode."""
 
 
 class IconButton(CircularRippleBehavior, ButtonBehavior, FitImage):
@@ -318,19 +321,19 @@ class MDFileManager(ThemableBehavior, MDFloatLayout):
 
     ext = ListProperty()
     """
-    List of file extensions to be displayed
-    in the manager. For example, `['py', 'kv']` - will filter out all files,
+    List of file extensions to be displayed in the manager.
+    For example, `['.py', '.kv']` - will filter out all files,
     except python scripts and Kv Language.
 
     :attr:`ext` is an :class:`~kivy.properties.ListProperty`
     and defaults to `[]`.
     """
 
-    search = OptionProperty("all", options=["all", "files"])
+    search = OptionProperty("all", options=["all", "dirs", "files"])
     """
-    It can take the values 'dirs' 'files' - display only directories
-    or only files. By default, it displays and folders, and files.
-    Available options are: `'all'`, `'files'`.
+    It can take the values 'all' 'dirs' 'files' - display only directories
+    or only files or both them. By default, it displays folders, and files.
+    Available options are: `'all'`, `'dirs'`, `'files'`.
 
     :attr:`search` is an :class:`~kivy.properties.OptionProperty`
     and defaults to `all`.
@@ -360,26 +363,116 @@ class MDFileManager(ThemableBehavior, MDFloatLayout):
     and defaults to `False`.
     """
 
+    show_hidden_files = BooleanProperty(False)
+    """
+    Shows hidden files.
+
+    :attr:`show_hidden_files` is an :class:`~kivy.properties.BooleanProperty`
+    and defaults to `False`.
+    """
+
+    sort_by = OptionProperty(
+        "name", options=["nothing", "name", "date", "size", "type"]
+    )
+    """
+    It can take the values 'nothing' 'name' 'date' 'size' 'type' - sorts files by option
+    By default, sort by name.
+    Available options are: `'nothing'`, `'name'`, `'date'`, `'size'`, `'type'`.
+
+    :attr:`sort_by` is an :class:`~kivy.properties.OptionProperty`
+    and defaults to `name`.
+    """
+
+    sort_by_desc = BooleanProperty(False)
+    """
+    Sort by descending.
+
+    :attr:`sort_by_desc` is an :class:`~kivy.properties.BooleanProperty`
+    and defaults to `False`.
+    """
+
+    selector = OptionProperty("any", options=["any", "file", "folder", "multi"])
+    """
+    It can take the values 'any' 'file' 'folder' 'multi'
+    By default, any.
+    Available options are: `'any'`, `'file'`, `'folder'`, `'multi'`.
+
+    :attr:`selector` is an :class:`~kivy.properties.OptionProperty`
+    and defaults to `any`.
+    """
+
+    selection = ListProperty([])
+    """
+    Contains the list of files that are currently selected.
+
+    :attr:`selection` is a read-only :class:`~kivy.properties.ListProperty` and
+    defaults to [].
+    """
+
     _window_manager = None
     _window_manager_open = False
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.history = []  # directory navigation history
-        # If False - do not add a directory to the history -
-        # The user moves down the tree.
-        self.history_flag = True
+
         toolbar_label = self.ids.toolbar.children[1].children[0]
         toolbar_label.font_style = "Subtitle1"
-        self.add_widget(
-            FloatButton(
-                callback=self.select_directory_on_press_button,
-                md_bg_color=self.theme_cls.primary_color,
-                icon=self.icon,
+
+        if (
+            self.selector == "any"
+            or self.selector == "multi"
+            or self.selector == "folder"
+        ):
+            self.add_widget(
+                FloatButton(
+                    callback=self.select_directory_on_press_button,
+                    md_bg_color=self.theme_cls.primary_color,
+                    icon=self.icon,
+                )
             )
-        )
+
         if self.preview:
             self.ext = [".png", ".jpg", ".jpeg"]
+
+    def __sort_files(self, files):
+        def sort_by_name(files):
+            files.sort(key=locale.strxfrm)
+            files.sort(key=str.casefold)
+
+            return files
+
+        if self.sort_by == "name":
+            sorted_files = sort_by_name(files)
+
+        elif self.sort_by == "date":
+            _files = sort_by_name(files)
+            _sorted_files = [os.path.join(self.current_path, f) for f in _files]
+            _sorted_files.sort(key=os.path.getmtime, reverse=True)
+
+            sorted_files = [os.path.basename(f) for f in _sorted_files]
+
+        elif self.sort_by == "size":
+            _files = sort_by_name(files)
+            _sorted_files = [os.path.join(self.current_path, f) for f in _files]
+            _sorted_files.sort(key=os.path.getsize, reverse=True)
+
+            sorted_files = [os.path.basename(f) for f in _sorted_files]
+
+        elif self.sort_by == "type":
+            _files = sort_by_name(files)
+
+            sorted_files = sorted(
+                _files,
+                key=lambda f: (os.path.splitext(f)[1], os.path.splitext(f)[0]),
+            )
+
+        else:
+            sorted_files = files
+
+        if self.sort_by_desc:
+            sorted_files.reverse()
+
+        return sorted_files
 
     def show(self, path):
         """Forms the body of a directory tree.
@@ -388,8 +481,9 @@ class MDFileManager(ThemableBehavior, MDFloatLayout):
             The path to the directory that will be opened in the file manager.
         """
 
-        dirs, files = self.get_content(path)
         self.current_path = path
+        self.selection = []
+        dirs, files = self.get_content()
         manager_list = []
 
         if dirs == [] and files == []:  # selected directory
@@ -398,7 +492,7 @@ class MDFileManager(ThemableBehavior, MDFloatLayout):
             return
 
         if self.preview:
-            for name_dir in dirs:
+            for name_dir in self.__sort_files(dirs):
                 manager_list.append(
                     {
                         "viewclass": "BodyManagerWithPreview",
@@ -408,9 +502,10 @@ class MDFileManager(ThemableBehavior, MDFloatLayout):
                         "name": name_dir,
                         "events_callback": self.select_dir_or_file,
                         "height": dp(150),
+                        "_selected": False,
                     }
                 )
-            for name_file in files:
+            for name_file in self.__sort_files(files):
                 if (
                     os.path.splitext(os.path.join(path, name_file))[1]
                     in self.ext
@@ -423,10 +518,11 @@ class MDFileManager(ThemableBehavior, MDFloatLayout):
                             "type": "files",
                             "events_callback": self.select_dir_or_file,
                             "height": dp(150),
+                            "_selected": False,
                         }
                     )
         else:
-            for name in dirs:
+            for name in self.__sort_files(dirs):
                 _path = os.path.join(path, name)
                 access_string = self.get_access_string(_path)
                 if "r" not in access_string:
@@ -441,19 +537,23 @@ class MDFileManager(ThemableBehavior, MDFloatLayout):
                         "icon": icon,
                         "dir_or_file_name": name,
                         "events_callback": self.select_dir_or_file,
+                        "_selected": False,
                     }
                 )
-            for name in files:
-                if self.ext and os.path.splitext(name)[1] in self.ext:
-                    manager_list.append(
-                        {
-                            "viewclass": "BodyManager",
-                            "path": name,
-                            "icon": "file-outline",
-                            "dir_or_file_name": os.path.split(name)[1],
-                            "events_callback": self.select_dir_or_file,
-                        }
-                    )
+            for name in self.__sort_files(files):
+                if self.ext and os.path.splitext(name)[1] not in self.ext:
+                    continue
+
+                manager_list.append(
+                    {
+                        "viewclass": "BodyManager",
+                        "path": name,
+                        "icon": "file-outline",
+                        "dir_or_file_name": os.path.split(name)[1],
+                        "events_callback": self.select_dir_or_file,
+                        "_selected": False,
+                    }
+                )
         self.ids.rv.data = manager_list
 
         if not self._window_manager:
@@ -475,34 +575,44 @@ class MDFileManager(ThemableBehavior, MDFloatLayout):
                 )
         return access_string
 
-    def get_content(self, path):
+    def get_content(self):
         """Returns a list of the type [[Folder List], [file list]]."""
 
         try:
             files = []
             dirs = []
 
-            if self.history_flag:
-                self.history.append(path)
-            if not self.history_flag:
-                self.history_flag = True
-
-            for content in os.listdir(path):
-                if os.path.isdir(os.path.join(path, content)):
+            for content in os.listdir(self.current_path):
+                if os.path.isdir(os.path.join(self.current_path, content)):
                     if self.search == "all" or self.search == "dirs":
-                        dirs.append(content)
+                        if (not self.show_hidden_files) and (
+                            content.startswith(".")
+                        ):
+                            continue
+                        else:
+                            dirs.append(content)
+
                 else:
                     if self.search == "all" or self.search == "files":
                         if len(self.ext) != 0:
                             try:
-                                files.append(os.path.join(path, content))
+                                files.append(
+                                    os.path.join(self.current_path, content)
+                                )
                             except IndexError:
                                 pass
                         else:
-                            files.append(content)
+                            if (
+                                not self.show_hidden_files
+                                and content.startswith(".")
+                            ):
+                                continue
+                            else:
+                                files.append(content)
+
             return dirs, files
+
         except OSError:
-            self.history.pop()
             return None, None
 
     def close(self):
@@ -511,36 +621,48 @@ class MDFileManager(ThemableBehavior, MDFloatLayout):
         self._window_manager.dismiss()
         self._window_manager_open = False
 
-    def select_dir_or_file(self, path):
+    def select_dir_or_file(self, path, widget):
         """Called by tap on the name of the directory or file."""
 
-        if os.path.isfile(path):
-            self.select_path(path)
-            return
+        if os.path.isfile(os.path.join(self.current_path, path)):
+            if self.selector == "multi":
+                file_path = os.path.join(self.current_path, path)
+                if file_path in self.selection:
+                    widget._selected = False
+                    self.selection.remove(file_path)
+                else:
+                    widget._selected = True
+                    self.selection.append(file_path)
+            elif self.selector == "folder":
+                return
+            else:
+                self.select_path(os.path.join(self.current_path, path))
 
-        self.current_path = path
-        self.show(path)
+        else:
+            self.current_path = path
+            self.show(path)
 
     def back(self):
         """Returning to the branch down in the directory tree."""
 
-        if len(self.history) == 1:
-            path, end = os.path.split(self.history[0])
-            if end == "":
-                self.close()
-                self.exit_manager(1)
-                return
-            self.history[0] = path
+        path, end = os.path.split(self.current_path)
+
+        if not end:
+            self.close()
+            self.exit_manager(1)
+
         else:
-            self.history.pop()
-            path = self.history[-1]
-        self.history_flag = False
-        self.select_dir_or_file(path)
+            self.show(path)
 
     def select_directory_on_press_button(self, *args):
         """Called when a click on a floating button."""
 
-        self.select_path(self.current_path)
+        if self.selector == "multi":
+            if len(self.selection) > 0:
+                self.select_path(self.selection)
+        else:
+            if self.selector == "folder" or self.selector == "any":
+                self.select_path(self.current_path)
 
 
 Builder.load_string(ACTIVITY_MANAGER)

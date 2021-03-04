@@ -28,27 +28,44 @@ exclude = '''
 line_length = 80
 include_trailing_comma = true
 multi_line_output = 3
-use_parantheses = true
+use_parentheses = true
 force_grid_wrap = 0
 ensure_newline_before_comments = true
 known_third_party = ["setuptools", "kivy", "requests", "PIL", "android", "jnius", "watchdog", "sphinx", "docutils", "autoapi", "unidecode"]
 
 [tool.poetry]
 name = "pgm-kivymd"
-version = "0.104.1"
+version = "0.104.2.dev0"
 description = "Set of widgets for Kivy inspired by Google's Material"
 authors = ["KivyMD Development Team"]
 
 [tool.poetry.dependencies]
 python = ">= 3.7, < 3.8"
-kivy = "2.0.0rc3"
-kivy_examples = "2.0.0rc3"
-"kivy-garden.graph" = "*"
-kivymd = {path = "../wheels/kivymd-0.104.2.dev0-py3-none-any.whl"}
-plyer = "*"
+kivy = "^2.0.0rc3"
+kivy_examples = "^2.0.0rc3"
+"kivy-garden.graph" = "^0.4.0"
+plyer = "^1.4.3"
+"kivy-deps.sdl2" = "^0.2.0"
+"kivy-deps.glew" = "^0.2.0"
+"kivy-deps.angle" = "^0.2.0"
+kivymd = {path = "dist/kivymd-0.104.2.dev0-py3-none-any.whl"}
+python-redmine = "^2.3.0"
 ffpyplayer = "^4.3.1"
+
 
 [tool.poetry.dev-dependencies]
 wheel = "^0.34.2"
-buildozer = {path = "../wheels/buildozer-1.2.0.dev0-py3-none-any.whl"}
+# buildozer = {path = "../wheels/buildozer-1.2.0.dev0-py3-none-any.whl"}
+buildozer = {git = "https://github.com/kivy/buildozer.git", markers = "sys_platform == 'linux'"}
 cython = "^0.29.21"
+pyinstaller = "^4.0"
+pep8 = "^1.7.1"
+pylint = "^2.6.0"
+black = "^20.8b1"
+ipython = "^7.18.1"
+setuptools = "^50.3.0"
+watchdog = "^0.10.3"
+sphinx = "^3.2.1"
+docutils = "^0.16"
+autoapi = "^2.0.1"
+pytest = "^6.0.1"

@@ -250,13 +250,13 @@ class MDCheckbox(CircularRippleBehavior, ToggleButtonBehavior, MDIcon):
     and defaults to `'checkbox-blank-outline'`.
     """
 
-    checkbox_icon_down = StringProperty("checkbox-marked-outline")
+    checkbox_icon_down = StringProperty("checkbox-marked")
     """
     Background icon of the checkbox used for the default graphical
     representation when the checkbox is pressed.
 
     :attr:`checkbox_icon_down` is a :class:`~kivy.properties.StringProperty`
-    and defaults to `'checkbox-marked-outline'`.
+    and defaults to `'checkbox-marked'`.
     """
 
     radio_icon_normal = StringProperty("checkbox-blank-circle-outline")
@@ -268,13 +268,13 @@ class MDCheckbox(CircularRippleBehavior, ToggleButtonBehavior, MDIcon):
     and defaults to `'checkbox-blank-circle-outline'`.
     """
 
-    radio_icon_down = StringProperty("checkbox-marked-circle-outline")
+    radio_icon_down = StringProperty("checkbox-marked-circle")
     """
     Background icon (when using the ``group`` option) of the checkbox used for
     the default graphical representation when the checkbox is pressed.
 
     :attr:`radio_icon_down` is a :class:`~kivy.properties.StringProperty`
-    and defaults to `'checkbox-marked-circle-outline'`.
+    and defaults to `'checkbox-marked-circle'`.
     """
 
     selected_color = ListProperty()
@@ -329,11 +329,18 @@ class MDCheckbox(CircularRippleBehavior, ToggleButtonBehavior, MDIcon):
             state=self.update_color,
         )
         self.theme_cls.bind(primary_color=self.update_primary_color)
+        self.theme_cls.bind(theme_style=self.update_primary_color)
         self.update_icon()
         self.update_color()
 
     def update_primary_color(self, instance, value):
-        self.selected_color = value
+        if value in ("Dark", "Light"):
+            if not self.disabled:
+                self.color = self.theme_cls.primary_color
+            else:
+                self.color = self.disabled_color
+        else:
+            self.selected_color = value
 
     def update_icon(self, *args):
         if self.state == "down":
@@ -365,7 +372,8 @@ class MDCheckbox(CircularRippleBehavior, ToggleButtonBehavior, MDIcon):
             self.active = True
         else:
             self.check_anim_in.cancel(self)
-            self.check_anim_out.start(self)
+            if not self.group:
+                self.check_anim_out.start(self)
             self.update_icon()
             self.active = False
 
